@@ -1,1 +1,126 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GreenBank Pokémon Edition</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#100d19;color:#f5f0ff;font-family:Arial,sans-serif;padding:20px}
+header{text-align:center;padding:20px 0}
+h1{font-size:27px;color:#d5a7ff;margin:5px}
+.sub{color:#a69bb8;font-size:13px}
+.balance{background:linear-gradient(135deg,#39205b,#171322);border:1px solid #69438b;border-radius:22px;padding:23px;margin:18px 0;text-align:center}
+.balance small{color:#c7b5df}
+.coins{font-size:34px;font-weight:bold;margin:10px}
+button{background:#a85cf5;color:white;border:0;border-radius:13px;padding:13px 18px;font-size:15px;font-weight:bold;cursor:pointer}
+button:active{transform:scale(.97)}
+h2{font-size:19px;margin-top:28px}
+.pack{background:#21192e;border:1px solid #443453;border-radius:20px;padding:20px;text-align:center}
+.pack .emoji{font-size:65px}
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.card{background:#21192e;border:1px solid #59406c;border-radius:17px;padding:16px 8px;text-align:center}
+.card .emoji{font-size:43px}
+.card strong{display:block;margin:9px 0}
+.card small{color:#c4a9dc}
+.note{color:#a69bb8;font-size:12px;text-align:center;margin:25px 0}
+#message{min-height:24px;color:#d7adff;text-align:center;margin:12px 0}
+</style>
+</head>
+<body>
+<header>
+  <div style="font-size:35px">🐈‍⬛</div>
+  <h1>GreenBank</h1>
+  <div class="sub">POKÉMON EDITION · VIRTUAL GAME</div>
+</header>
 
+<section class="balance">
+  <small>ТВОЙ БАЛАНС</small>
+  <div class="coins">🪙 <span id="coins">500</span></div>
+  <small>Виртуальные монеты</small>
+</section>
+
+<section class="pack">
+  <div class="emoji">🎴</div>
+  <h2 style="margin-top:10px">Покебол-пак</h2>
+  <p class="sub">Открой случайную карточку покемона!</p>
+  <p>Цена: <b>100 🪙</b></p>
+  <button onclick="openPack()">Открыть пак</button>
+  <div id="message"></div>
+</section>
+
+<h2>📚 Моя коллекция</h2>
+<div class="cards" id="cards"></div>
+
+<p class="note">Демо-версия. Монеты виртуальные и не имеют денежной стоимости. Прогресс хранится в этом браузере.</p>
+
+<script>
+const pokemon = [
+ {name:"Пикачу",emoji:"⚡",rarity:"Обычная",color:"#bca0ff"},
+ {name:"Бульбазавр",emoji:"🌿",rarity:"Обычная",color:"#8ee0a1"},
+ {name:"Чармандер",emoji:"🔥",rarity:"Редкая",color:"#ffae80"},
+ {name:"Сквиртл",emoji:"💧",rarity:"Обычная",color:"#8bcaff"},
+ {name:"Генгар",emoji:"👻",rarity:"Эпическая",color:"#cf9bff"},
+ {name:"Иви",emoji:"🦊",rarity:"Редкая",color:"#f0c38e"},
+ {name:"Драгонайт",emoji:"🐉",rarity:"Эпическая",color:"#ffadca"},
+ {name:"Мьюту",emoji:"🔮",rarity:"Легендарная",color:"#ffe28a"}
+];
+
+let save;
+try { save=JSON.parse(localStorage.getItem("gbPokemonSave")); } catch(e) {}
+if(!save || typeof save.coins!=="number" || !Array.isArray(save.cards)){
+ save={coins:500,cards:[]};
+}
+function persist(){
+ localStorage.setItem("gbPokemonSave",JSON.stringify(save));
+ render();
+}
+function render(){
+ document.getElementById("coins").textContent=save.coins;
+ const counts={};
+ save.cards.forEach(n=>counts[n]=(counts[n]||0)+1);
+ document.getElementById("cards").innerHTML=pokemon
+ .filter(p=>counts[p.name])
+ .map(p=>`<div class="card" style="border-color:${p.color}">
+ <div class="emoji">${p.emoji}</div>
+ <strong>${p.name}</strong>
+ <small>${p.rarity}</small>
+ <p>Количество: ${counts[p.name]}</p>
+ <button onclick="sell('${p.name}')">Продать · ${sellPrice(p)} 🪙</button>
+ </div>`).join("") || '<p class="sub">Пока пусто. Открой свой первый пак!</p>';
+}
+function openPack(){
+ if(save.coins<100){
+  document.getElementById("message").textContent="Не хватает монет!";
+  return;
+ }
+ save.coins-=100;
+ const roll=Math.random();
+ const pool=roll>.97?pokemon.filter(p=>p.rarity==="Легендарная"):
+ roll>.82?pokemon.filter(p=>p.rarity==="Эпическая"):
+ roll>.55?pokemon.filter(p=>p.rarity==="Редкая"):
+ pokemon.filter(p=>p.rarity==="Обычная");
+ const p=pool[Math.floor(Math.random()*pool.length)];
+ save.cards.push(p.name);
+ localStorage.setItem("gbPokemonSave",JSON.stringify(save));
+ document.getElementById("message").textContent=
+ "Тебе выпал "+p.emoji+" "+p.name+"!";
+ render();
+}
+function sellPrice(p){
+ return p.rarity==="Легендарная"?300:
+ p.rarity==="Эпическая"?150:
+ p.rarity==="Редкая"?75:30;
+}
+function sell(name){
+ const i=save.cards.indexOf(name);
+ if(i<0)return;
+ const p=pokemon.find(x=>x.name===name);
+ save.cards.splice(i,1);
+ save.coins+=sellPrice(p);
+ persist();
+}
+render();
+</script>
+</body>
+  </html>
